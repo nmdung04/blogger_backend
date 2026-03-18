@@ -1,0 +1,30 @@
+{
+  "name": "blogger-backend",
+  "version": "0.1.0",
+  "description": "Backend API (Node.js + Express) for a blogger site with courses and blog posts (admin + public)",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.4",
+    "express-async-errors": "^3.1.1",
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb": "^7.1.0",
+    "mongoose": "^7.6.1",
+    "morgan": "^1.10.0",
+    "slugify": "^1.6.6"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
