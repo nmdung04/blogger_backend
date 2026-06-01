@@ -62,6 +62,140 @@ Auth sử dụng Bearer JWT ở header:
 
 Các endpoint này **không yêu cầu auth**.
 
+### 3.0 AI Chat công khai
+
+Module AI Chat hiện hoạt động theo mô hình **anonymous + stateless**:
+
+- **Không yêu cầu đăng nhập**
+- **Không lưu conversation/message ở backend**
+- Frontend phải tự giữ lịch sử chat cục bộ và gửi lại qua field `history`
+- Backend tự thêm `system prompt`; frontend **không được** gửi role `system`
+- `history` chỉ chấp nhận các role:
+  - `user`
+  - `assistant`
+- Provider hiện tại là **Gemini**
+- Giới hạn mặc định hiện tại:
+  - `history` tối đa `20` messages
+  - mỗi message tối đa `8000` ký tự
+  - rate limit theo IP/client trong cửa sổ thời gian ngắn
+
+### 3.0.1 Gửi message AI thường
+
+- **Method + URL**: `POST /api/chat`
+- **Query params**: _None_
+- **Request body schema**:
+  ```json
+  {
+    "content": "string (required)",
+    "history": [
+      {
+        "role": "user | assistant",
+        "content": "string"
+      }
+    ]
+  }
+  ```
+- **Response schema (success – 201)**:
+  ```json
+  {
+    "ok": true,
+    "data": {
+      "message": {
+        "role": "assistant",
+        "content": "string",
+        "model": "string",
+        "finishReason": "string | null"
+      },
+      "usage": {
+        "promptTokens": 123,
+        "completionTokens": 45,
+        "totalTokens": 168,
+        "estimatedCost": 0
+      }
+    }
+  }
+  ```
+- **Frontend flow khuyến nghị**:
+  - Gửi `content` hiện tại
+  - Gửi kèm `history` là các cặp hỏi/đáp gần nhất mà UI đang giữ
+  - Khi nhận response:
+    - append `{ role: "user", content }`
+    - append `data.message`
+  - Không cần lưu `conversationId`
+- **Auth required?**: No
+- **Role required?**: None
+- **Error codes**:
+  - `400`: Request không hợp lệ
+  - `429`: Vượt rate limit
+  - `502`: AI trả về nội dung rỗng
+  - `503`: thiếu `GEMINI_API_KEY` hoặc AI bị disable
+  - `500`: Lỗi server khác
+
+### 3.0.2 Gửi message AI dạng stream
+
+- **Method + URL**: `POST /api/chat/stream`
+- **Headers quan trọng**:
+  - `Content-Type: application/json`
+  - `Accept: text/event-stream`
+- **Query params**: _None_
+- **Request body schema**:
+  ```json
+  {
+    "content": "string (required)",
+    "history": [
+      {
+        "role": "user | assistant",
+        "content": "string"
+      }
+    ]
+  }
+  ```
+- **Response type**: `text/event-stream`
+- **SSE event contract**:
+  - `start`
+    ```json
+    { "ok": true }
+    ```
+  - `delta`
+    ```json
+    { "delta": "partial token text" }
+    ```
+  - `done`
+    ```json
+    {
+      "message": {
+        "role": "assistant",
+        "content": "full response text",
+        "model": "string",
+        "finishReason": "string | null"
+      }
+    }
+    ```
+  - `usage`
+    ```json
+    {
+      "promptTokens": 123,
+      "completionTokens": 45,
+      "totalTokens": 168,
+      "estimatedCost": 0
+    }
+    ```
+  - `error`
+    ```json
+    {
+      "message": "string",
+      "status": 400
+    }
+    ```
+- **Auth required?**: No
+- **Role required?**: None
+- **Error behavior**:
+  - Lỗi sẽ được phát qua event `error` thay vì JSON response thông thường
+  - Một số lỗi phổ biến:
+    - `400`: body/history không hợp lệ
+    - `429`: vượt rate limit hoặc đang có stream khác từ cùng client
+    - `503`: thiếu `GEMINI_API_KEY` hoặc AI bị disable
+
 ### 3.1 Lấy danh sách courses
 
 - **Method + URL**: `GET /api/courses`
