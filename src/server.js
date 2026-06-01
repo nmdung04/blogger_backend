@@ -1,13 +1,16 @@
 import dotenv from "dotenv";
-import app from "./app.js";
-import { connectDb } from "./config/db.js";
-import { createAdminIfNotExists } from "./services/auth.service.js";
 
 dotenv.config();
 
 const PORT = parseInt(process.env.PORT || "4000", 10);
 
 async function start() {
+  const [{ default: app }, { connectDb }, { createAdminIfNotExists }] = await Promise.all([
+    import("./app.js"),
+    import("./config/db.js"),
+    import("./services/auth.service.js"),
+  ]);
+
   const mongoUri = process.env.MONGO_URI;
   await connectDb(mongoUri);
 
